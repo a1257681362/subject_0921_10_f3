@@ -18,6 +18,7 @@ public class TicketView {
     private Long registrationId;
     private String regNo;
     private String name;
+    private String school;
     private String idType;
     private String idNo;
     private String gender;

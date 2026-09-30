@@ -41,6 +41,7 @@ public class RegistrationService {
         CORRECTABLE_FIELDS.put("GENDER", "性别");
         CORRECTABLE_FIELDS.put("PHONE", "联系电话");
         CORRECTABLE_FIELDS.put("SUBJECT", "报考科目");
+        CORRECTABLE_FIELDS.put("SCHOOL", "所属学校");
     }
 
     private final RegistrationMapper registrationMapper;
@@ -75,7 +76,10 @@ public class RegistrationService {
             boolean exists = existing.containsKey(regNo);
             boolean ok = !dupInFile && !exists;
             String note = dupInFile ? "名册文件内报名号重复，将拒收"
-                    : exists ? "报名号已存在（可能在其他批次），将拒收" : "新增报名";
+                    : exists ? "报名号已存在（可能在其他批次），将拒收"
+                    : (r.getSchool() == null || r.getSchool().trim().isEmpty()
+                            ? "新增报名（未填学校）"
+                            : "新增报名（学校：" + r.getSchool().trim() + "）");
             if (ok) {
                 actionable++;
             } else {
@@ -127,6 +131,7 @@ public class RegistrationService {
             reg.setPhone(r.getPhone());
             reg.setBatchId(request.getBatchId());
             reg.setSubject(r.getSubject());
+            reg.setSchool(trimToNull(r.getSchool()));
             reg.setStatus(ExamConstants.REG_REGISTERED);
             reg.setCorrectionCount(0);
             reg.setRemark(r.getRemark());
@@ -277,6 +282,7 @@ public class RegistrationService {
             case "GENDER": return reg.getGender();
             case "PHONE": return reg.getPhone();
             case "SUBJECT": return reg.getSubject();
+            case "SCHOOL": return reg.getSchool();
             default: return null;
         }
     }
@@ -288,11 +294,20 @@ public class RegistrationService {
             case "GENDER": reg.setGender(value); break;
             case "PHONE": reg.setPhone(value); break;
             case "SUBJECT": reg.setSubject(value); break;
+            case "SCHOOL": reg.setSchool(value); break;
             default: break;
         }
     }
 
     public static Set<String> correctableFields() {
         return new LinkedHashMap<>(CORRECTABLE_FIELDS).keySet();
+    }
+
+    private static String trimToNull(String s) {
+        if (s == null) {
+            return null;
+        }
+        String t = s.trim();
+        return t.isEmpty() ? null : t;
     }
 }

@@ -25,6 +25,7 @@ public final class ExamConstants {
     // 阶段
     public static final String STAGE_IMPORT = "IMPORT";
     public static final String STAGE_ARRANGEMENT = "ARRANGEMENT";
+    public static final String STAGE_REARRANGE = "REARRANGE";
     public static final String STAGE_PRINTING = "PRINTING";
     public static final String STAGE_ISSUANCE = "ISSUANCE";
 

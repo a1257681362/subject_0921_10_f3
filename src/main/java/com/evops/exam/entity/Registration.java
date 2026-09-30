@@ -17,6 +17,8 @@ public class Registration extends BaseEntity {
     private String phone;
     private Long batchId;
     private String subject;
+    /** 所属学校（机构）：同校学员混排错开的分组依据；为空表示未知学校 */
+    private String school;
     /** REGISTERED 已报名 / ARRANGED 已编排 */
     private String status;
     private Integer correctionCount;

@@ -136,6 +136,7 @@ public class QueryService {
             if (r != null) {
                 v.setRegNo(r.getRegNo());
                 v.setName(r.getName());
+                v.setSchool(r.getSchool());
                 v.setIdType(r.getIdType());
                 v.setIdNo(r.getIdNo());
                 v.setGender(r.getGender());

@@ -5,9 +5,12 @@ import com.evops.exam.entity.ExamBatch;
 import com.evops.exam.entity.ExamRoom;
 import com.evops.exam.entity.ExamSite;
 import com.evops.exam.entity.FinalConclusion;
+import com.evops.exam.entity.ArrangementRun;
 import com.evops.exam.entity.Registration;
 import com.evops.exam.entity.RegistrationCorrection;
 import com.evops.exam.entity.StageResult;
+import com.evops.mixalgo.entity.MixAlgorithm;
+import com.evops.mixalgo.entity.MixAlgorithmVersion;
 import com.evops.grade.entity.ExamScore;
 import com.evops.grade.entity.GradeRule;
 import com.evops.grade.entity.GradeRuleVersion;
@@ -34,6 +37,15 @@ public interface RestoreMapper {
 
     @Delete("DELETE FROM t_score_notification")
     void clearNotifications();
+
+    @Delete("DELETE FROM t_arrangement_run")
+    void clearArrangementRuns();
+
+    @Delete("DELETE FROM t_mix_algorithm_version")
+    void clearMixVersions();
+
+    @Delete("DELETE FROM t_mix_algorithm")
+    void clearMixAlgorithms();
 
     @Delete("DELETE FROM t_score_change_log")
     void clearChangeLogs();
@@ -92,9 +104,9 @@ public interface RestoreMapper {
     void insertBatch(ExamBatch b);
 
     @Insert("INSERT INTO t_registration (id, reg_no, name, id_type, id_no, gender, phone, batch_id, subject, "
-            + "status, correction_count, remark, create_by, create_time, update_by, update_time) VALUES "
+            + "school, status, correction_count, remark, create_by, create_time, update_by, update_time) VALUES "
             + "(#{id},#{regNo},#{name},#{idType},#{idNo},#{gender},#{phone},#{batchId},#{subject},"
-            + "#{status},#{correctionCount},#{remark},#{createBy},#{createTime},#{updateBy},#{updateTime})")
+            + "#{school},#{status},#{correctionCount},#{remark},#{createBy},#{createTime},#{updateBy},#{updateTime})")
     void insertRegistration(Registration r);
 
     @Insert("INSERT INTO t_registration_correction (id, registration_id, field_name, field_label, old_value, "
@@ -166,6 +178,28 @@ public interface RestoreMapper {
             + "#{createBy},#{createTime},#{updateBy},#{updateTime})")
     void insertNotification(ScoreNotification n);
 
+    @Insert("INSERT INTO t_mix_algorithm (id, code, name, project_code, remark, "
+            + "create_by, create_time, update_by, update_time) VALUES "
+            + "(#{id},#{code},#{name},#{projectCode},#{remark},"
+            + "#{createBy},#{createTime},#{updateBy},#{updateTime})")
+    void insertMixAlgorithm(MixAlgorithm a);
+
+    @Insert("INSERT INTO t_mix_algorithm_version (id, algorithm_id, version_no, status, params, remark, "
+            + "published_by, published_at, disabled_by, disabled_at, operator, "
+            + "create_by, create_time, update_by, update_time) VALUES "
+            + "(#{id},#{algorithmId},#{versionNo},#{status},#{params},#{remark},"
+            + "#{publishedBy},#{publishedAt},#{disabledBy},#{disabledAt},#{operator},"
+            + "#{createBy},#{createTime},#{updateBy},#{updateTime})")
+    void insertMixVersion(MixAlgorithmVersion v);
+
+    @Insert("INSERT INTO t_arrangement_run (id, batch_id, run_type, mix_version_id, mix_version_no, seed, "
+            + "seating, total_count, room_count, same_school_adjacent_count, adjacent_detail, is_current, "
+            + "operator, executed_at, create_by, create_time, update_by, update_time) VALUES "
+            + "(#{id},#{batchId},#{runType},#{mixVersionId},#{mixVersionNo},#{seed},#{seating},"
+            + "#{totalCount},#{roomCount},#{sameSchoolAdjacentCount},#{adjacentDetail},#{isCurrent},"
+            + "#{operator},#{executedAt},#{createBy},#{createTime},#{updateBy},#{updateTime})")
+    void insertArrangementRun(ArrangementRun r);
+
     // 显式插 id 后必须把 IDENTITY 序列推到最大 id 之上，否则后续新增会主键冲突
     @Select("SELECT COALESCE(MAX(id),0) FROM t_exam_site")
     long maxSiteId();
@@ -209,6 +243,15 @@ public interface RestoreMapper {
     @Select("SELECT COALESCE(MAX(id),0) FROM t_score_notification")
     long maxNotificationId();
 
+    @Select("SELECT COALESCE(MAX(id),0) FROM t_mix_algorithm")
+    long maxMixAlgorithmId();
+
+    @Select("SELECT COALESCE(MAX(id),0) FROM t_mix_algorithm_version")
+    long maxMixVersionId();
+
+    @Select("SELECT COALESCE(MAX(id),0) FROM t_arrangement_run")
+    long maxArrangementRunId();
+
     @Update("ALTER TABLE t_exam_site ALTER COLUMN id RESTART WITH ${value}")
     void restartSite(@Param("value") long value);
 
@@ -250,4 +293,13 @@ public interface RestoreMapper {
 
     @Update("ALTER TABLE t_score_notification ALTER COLUMN id RESTART WITH ${value}")
     void restartNotification(@Param("value") long value);
+
+    @Update("ALTER TABLE t_mix_algorithm ALTER COLUMN id RESTART WITH ${value}")
+    void restartMixAlgorithm(@Param("value") long value);
+
+    @Update("ALTER TABLE t_mix_algorithm_version ALTER COLUMN id RESTART WITH ${value}")
+    void restartMixVersion(@Param("value") long value);
+
+    @Update("ALTER TABLE t_arrangement_run ALTER COLUMN id RESTART WITH ${value}")
+    void restartArrangementRun(@Param("value") long value);
 }
