@@ -15,5 +15,8 @@ public class RegistrationRequest {
     private String gender;
     private String phone;
     private String subject;
+    /** 学员所在学校（同校学员需错开相邻座位）；编码与名称至少给一个，建议都给 */
+    private String schoolCode;
+    private String schoolName;
     private String remark;
 }

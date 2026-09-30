@@ -14,6 +14,10 @@ import com.evops.grade.entity.GradeRuleVersion;
 import com.evops.grade.entity.ScoreChangeLog;
 import com.evops.grade.entity.ScoreNotification;
 import com.evops.grade.entity.ScoreReview;
+import com.evops.mix.entity.MixAlgorithm;
+import com.evops.mix.entity.MixAlgorithmVersion;
+import com.evops.mix.entity.MixArrangement;
+import com.evops.mix.entity.MixArrangementSeat;
 import org.apache.ibatis.annotations.Delete;
 import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Mapper;
@@ -34,6 +38,18 @@ public interface RestoreMapper {
 
     @Delete("DELETE FROM t_score_notification")
     void clearNotifications();
+
+    @Delete("DELETE FROM t_mix_arrangement_seat")
+    void clearMixSeats();
+
+    @Delete("DELETE FROM t_mix_arrangement")
+    void clearMixArrangements();
+
+    @Delete("DELETE FROM t_mix_algorithm_version")
+    void clearMixAlgorithmVersions();
+
+    @Delete("DELETE FROM t_mix_algorithm")
+    void clearMixAlgorithms();
 
     @Delete("DELETE FROM t_score_change_log")
     void clearChangeLogs();
@@ -92,9 +108,11 @@ public interface RestoreMapper {
     void insertBatch(ExamBatch b);
 
     @Insert("INSERT INTO t_registration (id, reg_no, name, id_type, id_no, gender, phone, batch_id, subject, "
-            + "status, correction_count, remark, create_by, create_time, update_by, update_time) VALUES "
+            + "school_code, school_name, status, correction_count, remark, "
+            + "create_by, create_time, update_by, update_time) VALUES "
             + "(#{id},#{regNo},#{name},#{idType},#{idNo},#{gender},#{phone},#{batchId},#{subject},"
-            + "#{status},#{correctionCount},#{remark},#{createBy},#{createTime},#{updateBy},#{updateTime})")
+            + "#{schoolCode},#{schoolName},#{status},#{correctionCount},#{remark},"
+            + "#{createBy},#{createTime},#{updateBy},#{updateTime})")
     void insertRegistration(Registration r);
 
     @Insert("INSERT INTO t_registration_correction (id, registration_id, field_name, field_label, old_value, "
@@ -166,6 +184,38 @@ public interface RestoreMapper {
             + "#{createBy},#{createTime},#{updateBy},#{updateTime})")
     void insertNotification(ScoreNotification n);
 
+    @Insert("INSERT INTO t_mix_algorithm (id, code, name, project_code, description, status, remark, "
+            + "create_by, create_time, update_by, update_time) VALUES "
+            + "(#{id},#{code},#{name},COALESCE(#{projectCode},'DEFAULT'),#{description},#{status},#{remark},"
+            + "#{createBy},#{createTime},#{updateBy},#{updateTime})")
+    void insertMixAlgorithm(MixAlgorithm a);
+
+    @Insert("INSERT INTO t_mix_algorithm_version (id, algorithm_id, version_no, status, impl_key, params_json, "
+            + "remark, published_by, published_at, disabled_by, disabled_at, operator, "
+            + "create_by, create_time, update_by, update_time) VALUES "
+            + "(#{id},#{algorithmId},#{versionNo},#{status},#{implKey},#{paramsJson},#{remark},"
+            + "#{publishedBy},#{publishedAt},#{disabledBy},#{disabledAt},#{operator},"
+            + "#{createBy},#{createTime},#{updateBy},#{updateTime})")
+    void insertMixAlgorithmVersion(MixAlgorithmVersion v);
+
+    @Insert("INSERT INTO t_mix_arrangement (id, batch_id, algorithm_id, algorithm_version_id, version_no, impl_key, "
+            + "seed, arrange_kind, total_count, room_count, used_seats, adjacent_pairs, same_school_pairs, "
+            + "same_school_people, status, operator, arranged_at, remark, "
+            + "create_by, create_time, update_by, update_time) VALUES "
+            + "(#{id},#{batchId},#{algorithmId},#{algorithmVersionId},#{versionNo},#{implKey},#{seed},"
+            + "#{arrangeKind},#{totalCount},#{roomCount},#{usedSeats},#{adjacentPairs},#{sameSchoolPairs},"
+            + "#{sameSchoolPeople},#{status},#{operator},#{arrangedAt},#{remark},"
+            + "#{createBy},#{createTime},#{updateBy},#{updateTime})")
+    void insertMixArrangement(MixArrangement a);
+
+    @Insert("INSERT INTO t_mix_arrangement_seat (id, arrangement_id, batch_id, registration_id, reg_no, name, "
+            + "school_code, school_name, room_id, room_no, seat_no, seat_index, ticket_no, adjacent_flag, "
+            + "create_by, create_time, update_by, update_time) VALUES "
+            + "(#{id},#{arrangementId},#{batchId},#{registrationId},#{regNo},#{name},#{schoolCode},#{schoolName},"
+            + "#{roomId},#{roomNo},#{seatNo},#{seatIndex},#{ticketNo},#{adjacentFlag},"
+            + "#{createBy},#{createTime},#{updateBy},#{updateTime})")
+    void insertMixSeat(MixArrangementSeat s);
+
     // 显式插 id 后必须把 IDENTITY 序列推到最大 id 之上，否则后续新增会主键冲突
     @Select("SELECT COALESCE(MAX(id),0) FROM t_exam_site")
     long maxSiteId();
@@ -209,6 +259,18 @@ public interface RestoreMapper {
     @Select("SELECT COALESCE(MAX(id),0) FROM t_score_notification")
     long maxNotificationId();
 
+    @Select("SELECT COALESCE(MAX(id),0) FROM t_mix_algorithm")
+    long maxMixAlgorithmId();
+
+    @Select("SELECT COALESCE(MAX(id),0) FROM t_mix_algorithm_version")
+    long maxMixAlgorithmVersionId();
+
+    @Select("SELECT COALESCE(MAX(id),0) FROM t_mix_arrangement")
+    long maxMixArrangementId();
+
+    @Select("SELECT COALESCE(MAX(id),0) FROM t_mix_arrangement_seat")
+    long maxMixSeatId();
+
     @Update("ALTER TABLE t_exam_site ALTER COLUMN id RESTART WITH ${value}")
     void restartSite(@Param("value") long value);
 
@@ -250,4 +312,16 @@ public interface RestoreMapper {
 
     @Update("ALTER TABLE t_score_notification ALTER COLUMN id RESTART WITH ${value}")
     void restartNotification(@Param("value") long value);
+
+    @Update("ALTER TABLE t_mix_algorithm ALTER COLUMN id RESTART WITH ${value}")
+    void restartMixAlgorithm(@Param("value") long value);
+
+    @Update("ALTER TABLE t_mix_algorithm_version ALTER COLUMN id RESTART WITH ${value}")
+    void restartMixAlgorithmVersion(@Param("value") long value);
+
+    @Update("ALTER TABLE t_mix_arrangement ALTER COLUMN id RESTART WITH ${value}")
+    void restartMixArrangement(@Param("value") long value);
+
+    @Update("ALTER TABLE t_mix_arrangement_seat ALTER COLUMN id RESTART WITH ${value}")
+    void restartMixSeat(@Param("value") long value);
 }

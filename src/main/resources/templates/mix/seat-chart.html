@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <title>座次表 - [[${batch.name}]]</title>
+    <style>
+        * { box-sizing: border-box; }
+        body { font-family: "SimSun", "Songti SC", serif; color: #000; margin: 0; padding: 24px; font-size: 13px; }
+        .toolbar { text-align: right; margin-bottom: 12px; font-family: sans-serif; }
+        .toolbar button { padding: 6px 18px; font-size: 14px; cursor: pointer; }
+        h1 { text-align: center; font-size: 20px; margin: 0 0 6px; }
+        .meta { width: 100%; border-collapse: collapse; margin-bottom: 10px; }
+        .meta td { padding: 3px 6px; }
+        .room-block { page-break-after: always; padding-top: 4px; }
+        .room-block:last-child { page-break-after: auto; }
+        .room-title { font-size: 16px; font-weight: bold; margin: 14px 0 6px; border-left: 6px solid #000; padding-left: 8px; }
+        table.seats { width: 100%; border-collapse: collapse; }
+        table.seats th, table.seats td { border: 1px solid #000; padding: 5px 6px; text-align: center; }
+        table.seats th { background: #f0f0f0; }
+        td.school { text-align: left; }
+        tr.same-school td { background: #ffe9e9; }
+        .flag { color: #b00000; font-weight: bold; }
+        .sign { margin-top: 18px; width: 100%; }
+        .sign td { padding: 12px 6px; }
+        .note { color: #444; font-family: sans-serif; font-size: 12px; margin-top: 4px; }
+        @media print {
+            body { padding: 8px; }
+            .toolbar { display: none; }
+        }
+    </style>
+</head>
+<body>
+<div class="toolbar">
+    <button onclick="window.print()">打印 / 导出 PDF</button>
+</div>
+
+<h1>[[${site.name}]] 考试座次表</h1>
+<table class="meta">
+    <tr>
+        <td style="width:18%">批次编号：[[${batch.code}]]</td>
+        <td style="width:32%">批次名称：[[${batch.name}]]</td>
+        <td style="width:18%">考试日期：[[${batch.examDate}]]</td>
+        <td style="width:32%">考试时间：[[${batch.startTime}]] - [[${batch.endTime}]]</td>
+    </tr>
+    <tr>
+        <td>考点：[[${site.name}]]</td>
+        <td>科目：[[${batch.subject} ?: '—']]</td>
+        <td>考场数：[[${blocks.size()}]] 间</td>
+        <td>实排人数：[[${arrangement.totalCount}]] 人</td>
+    </tr>
+    <tr>
+        <td colspan="2">混编算法版本：[[${arrangement.versionNo}]]（[[${arrangement.implKey}]]）</td>
+        <td>混编种子：[[${arrangement.seed}]]</td>
+        <td>同校相邻：共 [[${arrangement.sameSchoolPairs}]] 对 / 涉及 [[${arrangement.sameSchoolPeople}]] 人</td>
+    </tr>
+</table>
+<div class="note">说明：标红行为同校学员相邻座位（含左邻或右邻同校），供监考与巡考重点抽查；跨考场不相邻。</div>
+
+<div class="room-block" th:each="block : ${blocks}">
+    <div class="room-title">
+        第 [[${block.index}]] 页 ｜ 考场号：[[${block.room.roomNo}]]
+        <span style="font-size:13px;font-weight:normal;">
+            （[[${block.room.building} ?: '']][[${block.room.floorNo} != null ? ' ' + ${block.room.floorNo} + '层' : '']]
+            [[${block.room.locationDesc} ?: '']] ｜ 容量 [[${block.room.capacity}]]，实排 [[${block.seats.size()}]]
+            ｜ 本考场同校相邻 [[${block.sameSchoolPairs}]] 对）
+        </span>
+    </div>
+    <table class="seats">
+        <thead>
+        <tr>
+            <th style="width:10%">座位号</th>
+            <th style="width:20%">准考证号</th>
+            <th style="width:14%">姓名</th>
+            <th style="width:26%">所在学校</th>
+            <th style="width:12%">报名号</th>
+            <th style="width:18%">同校相邻标记</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="s : ${block.seats}"
+            th:classappend="${s.adjacentFlag == 'SAME_LEFT' || s.adjacentFlag == 'SAME_RIGHT' || s.adjacentFlag == 'SAME_BOTH'} ? 'same-school' : ''">
+            <td>[[${s.seatNo}]]</td>
+            <td>[[${s.ticketNo}]]</td>
+            <td>[[${s.name}]]</td>
+            <td class="school">[[${s.schoolName} ?: (${s.schoolCode} ?: '—')]]</td>
+            <td>[[${s.regNo}]]</td>
+            <td>
+                <span th:if="${s.adjacentFlag == 'NONE'}">—</span>
+                <span th:if="${s.adjacentFlag == 'OK'}">正常</span>
+                <span class="flag" th:if="${s.adjacentFlag == 'SAME_LEFT'}">左邻同校</span>
+                <span class="flag" th:if="${s.adjacentFlag == 'SAME_RIGHT'}">右邻同校</span>
+                <span class="flag" th:if="${s.adjacentFlag == 'SAME_BOTH'}">左右均同校</span>
+            </td>
+        </tr>
+        </tbody>
+    </table>
+    <table class="sign">
+        <tr>
+            <td>监考教师签字：________________</td>
+            <td>巡考抽查签字：________________</td>
+            <td style="width:30%">打印时间：[[${#temporals.format(generatedAt, 'yyyy-MM-dd HH:mm')}]]</td>
+        </tr>
+    </table>
+</div>
+</body>
+</html>

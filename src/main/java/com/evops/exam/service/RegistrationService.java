@@ -41,6 +41,8 @@ public class RegistrationService {
         CORRECTABLE_FIELDS.put("GENDER", "性别");
         CORRECTABLE_FIELDS.put("PHONE", "联系电话");
         CORRECTABLE_FIELDS.put("SUBJECT", "报考科目");
+        CORRECTABLE_FIELDS.put("SCHOOL_CODE", "所在学校编码");
+        CORRECTABLE_FIELDS.put("SCHOOL_NAME", "所在学校名称");
     }
 
     private final RegistrationMapper registrationMapper;
@@ -127,6 +129,8 @@ public class RegistrationService {
             reg.setPhone(r.getPhone());
             reg.setBatchId(request.getBatchId());
             reg.setSubject(r.getSubject());
+            reg.setSchoolCode(trimToNull(r.getSchoolCode()));
+            reg.setSchoolName(trimToNull(r.getSchoolName()));
             reg.setStatus(ExamConstants.REG_REGISTERED);
             reg.setCorrectionCount(0);
             reg.setRemark(r.getRemark());
@@ -277,6 +281,8 @@ public class RegistrationService {
             case "GENDER": return reg.getGender();
             case "PHONE": return reg.getPhone();
             case "SUBJECT": return reg.getSubject();
+            case "SCHOOL_CODE": return reg.getSchoolCode();
+            case "SCHOOL_NAME": return reg.getSchoolName();
             default: return null;
         }
     }
@@ -288,8 +294,18 @@ public class RegistrationService {
             case "GENDER": reg.setGender(value); break;
             case "PHONE": reg.setPhone(value); break;
             case "SUBJECT": reg.setSubject(value); break;
+            case "SCHOOL_CODE": reg.setSchoolCode(value); break;
+            case "SCHOOL_NAME": reg.setSchoolName(value); break;
             default: break;
         }
+    }
+
+    private static String trimToNull(String s) {
+        if (s == null) {
+            return null;
+        }
+        String t = s.trim();
+        return t.isEmpty() ? null : t;
     }
 
     public static Set<String> correctableFields() {

@@ -41,8 +41,14 @@
 ### 3. 编排（按批次生成准考证，一人一条）
 
 - `POST /api/arrange/preview` → `POST /api/arrange`：
-  按考场容量顺序排座，证号规则 `ZK + 批次编码 + 4 位流水`。
+  按考场容量顺序排座（**遗留朴素编排，不带混编约束**），证号规则 `ZK + 批次编码 + 4 位流水`。
   证号唯一、批次内（考场+座位）唯一，**撞号直接拒收**；容量不足整批拒收、不落半条；已编排批次不允许重复编排。
+- **巡考整改后统一走第 12 节混编编排**：同校错开相邻、按比例摊到多个考场、整批重排、座次表导出、同校相邻统计。
+
+### 3b. 报名带学校（混编依据）
+
+- 批量导入 / 名册字段新增 `schoolCode`、`schoolName`（所在学校，二者至少给一个，建议都给）。
+- 学校可勘误：`POST /api/registrations/{id}/corrections` 支持字段 `SCHOOL_CODE` / `SCHOOL_NAME`，旧值留痕。
 
 ### 4. 发证（打证、发放两步，各留经办与钟点）
 
@@ -105,3 +111,36 @@
 - 超窗自动关闭：窗口（批次配置的 `reviewEndAt`）过后仍 `SUBMITTED` 的申请，定时任务（每分钟，`evops.review.close-cron` 可调）自动置 `CLOSED`、成绩解锁、通知学员；也可 `POST /api/reviews/close-expired` 手动立即执行。
 - `GET /api/reviews?status=`、`GET /api/reviews/batch/{batchId}?status=`、`GET /api/reviews/{id}`。
 - 通知：`GET /api/notifications?regNo=&unreadOnly=`、`POST /api/notifications/{id}/read`（本版站内落库，短信等外发渠道下版再接）。
+
+## 巡考整改：同校错开混编工作区（mix-1）
+
+针对监考通报“同校学员挨着坐、抄得明明白白”，在 evops-base 增加**混编算法模块**（模块 / 版本 / 状态三要素分开），
+同校学员尽量错开相邻座位；一间考场装不下时按各校人数比例摊到多间考场；重排一律**整批**进行，不留半新半旧；
+算法种子与座次一起保存，同种子可复现；排完给出同校相邻统计供巡考抽查；座次表可导出打印，含考场号、座位号。
+
+### 12. 混编算法模块 / 版本 / 状态
+
+- `POST /api/mix/algorithms`、`GET /api/mix/algorithms?projectCode=`：建混编算法模块（编码、名称、适用项目 `projectCode` 缺省 `DEFAULT`）。
+- `POST /api/mix/algorithms/{id}/disable|enable`：模块停用 / 启用（停用模块不能发布版本）。
+- `POST /api/mix/algorithms/{id}/versions`：建草稿版本，body 含 `implKey`（缺省 `schoolShuffleV1`）、`seed`（缺省系统生成）、`maxRounds`。
+- `GET /api/mix/algorithms/{id}/versions`、`GET /api/mix/algorithms/versions/{versionId}`。
+- `POST /api/mix/algorithms/versions/{versionId}/publish`：**DRAFT→ACTIVE**，发布即冻结参数（含种子），同模块旧生效版自动置 **DISABLED**（同时刻仅一版生效）。
+- `POST /api/mix/algorithms/versions/{versionId}/disable`：人工停用生效版。
+- 实现标识 `schoolShuffleV1`：种子驱动确定性洗牌（同版本+同名册+同考场+同种子座次完全一致），各校轮转发牌拉开同校、按比例摊到多间考场，再贪心交换把“同考场内同校相邻”压到最低（多个派生起点取最优）；数学上无法完全错开时（某校占绝对多数）给出最小残留并如实统计。
+
+### 13. 混编编排 / 整批重排（两步：preview → execute）
+
+- 首次：`POST /api/mix/arrange/preview` → `POST /api/mix/arrange`，body `{"batchId":..., "algorithmVersionId":可选, "seed":可选, "roomOrder":可选}`；不指定版本时取项目当前 ACTIVE（项目无则回落 DEFAULT）。
+- 整改重排：`POST /api/mix/arrange/rearrange/preview` → `POST /api/mix/arrange/rearrange`，可带 `reason`（通报原因）；重排**默认换新种子**（也可指定），默认沿用原算法版本。
+- 预检返回：使用版本/种子、容量与缺口、各考场分摊人数、逐人座次、**同校相邻对数与涉及人数**、逐校明细；重排还会报将整批替换的旧证数（其中已打印需重打数）。
+- 执行保证：
+  - 容量不足**整批拒收**、不落半条；
+  - 重排在同一事务内先整批删旧座次、把旧编排记录置 **SUPERSEDED**（留痕）、删旧准考证，再整批写新座次与新准考证（状态一律回到 PENDING，须按新座次重新打证）；
+  - **已发放（ISSUED）准考证禁止重排**（证到人，座次不能再动），需先回收或走版本回退；
+  - 编排记录固化算法版本号、实现标识、实际种子；同种子重排座次可复现。
+
+### 14. 座次查询 / 同校相邻统计 / 座次表导出
+
+- `GET /api/mix/arrange/seats?batchId=`：当前有效座次（考场号、座位号、全批次序号、准考证号、同校相邻标记 `NONE/OK/SAME_LEFT/SAME_RIGHT/SAME_BOTH`）。
+- `GET /api/mix/arrange/stats?batchId=`：同校相邻总对数、涉及人数、占比、逐校人数/考场数/相邻对数/涉及人数。
+- `GET /print/mix/seat-chart?batchId=`：**座次表打印页**（HTTP Basic，浏览器弹框 `bootstrap/bootstrap`），按考场分页，每页含考场号、楼栋楼层、座位号、准考证号、姓名、所在学校、同校相邻标红行，附监考/巡考签字栏；浏览器直接“打印 / 导出 PDF”。

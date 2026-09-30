@@ -56,6 +56,8 @@ public class ShiroConfig {
         chain.addPathDefinition("/error", "anon");
         // API 走 HTTP Basic（bootstrap/bootstrap），未认证返回 401 与可读提示，而不是空白重定向
         chain.addPathDefinition("/api/**", "authcBasic");
+        // 座次表打印页同样走 HTTP Basic，浏览器弹框认证，避免名册外泄
+        chain.addPathDefinition("/print/**", "authcBasic");
         chain.addPathDefinition("/**", "authc");
         return chain;
     }
